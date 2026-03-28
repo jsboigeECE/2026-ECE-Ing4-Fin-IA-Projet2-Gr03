@@ -254,7 +254,7 @@ pytest tests/
 - [x] Code source complet et fonctionnel
 - [x] Documentation technique dans `docs/`
 - [ ] Pull Request créée et reviewable
-- [ ] Tous les membres identifiés dans la PR
+- [x] Tous les membres identifiés dans la PR
 
 ### Avant le 30 mars (Soutenance)
 
