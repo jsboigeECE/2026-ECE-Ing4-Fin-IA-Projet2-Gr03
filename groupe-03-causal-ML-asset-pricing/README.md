@@ -339,10 +339,10 @@ groupe-03-causal-asset-pricing/
 
 ## 👥 Team Organization
 
-| Role | Member | Responsibilities |
+| Member | Responsibilities |
 |------|--------|-----------------|
-| Erwan Simon | — | Architecture, pipeline, DML,Causal Forest, sensitivity |
-| Hamza Ouadoudi | — | Data generation, preprocessing, Plots, slides, documentation |
+| Erwan Simon | Architecture, pipeline, DML,Causal Forest, sensitivity |
+| Hamza Ouadoudi | Data generation, preprocessing, Plots, slides, documentation |
 
 ### Git Workflow
 
