@@ -1,0 +1,11 @@
+numpy
+pandas
+scipy
+matplotlib
+yfinance
+PyPortfolioOpt
+riskfolio-lib
+jupyter
+jupyterlab
+pytest
+scikit-learn

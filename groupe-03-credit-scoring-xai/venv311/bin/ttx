@@ -1,0 +1,8 @@
+#!/bin/sh
+'''exec' "/Users/malak/C.6 - Credit Scoring avec IA Explicable (XAI)/Ing4-Fin-IA-Projet2-Gr03_MALAK-El-Idrissi/groupe-03-credit-scoring-xai/venv311/bin/python3.11" "$0" "$@"
+' '''
+import sys
+from fontTools.ttx import main
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(main())

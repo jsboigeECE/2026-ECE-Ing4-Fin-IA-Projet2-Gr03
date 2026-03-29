@@ -1,0 +1,8 @@
+#!/Users/malak/C.6 - Credit Scoring avec IA Explicable (XAI)/Ing4-Fin-IA-Projet2-Gr03_MALAK-El-Idrissi/groupe-03-credit-scoring-xai/venv311/bin/python3.11
+# -*- coding: UTF-8 -*-
+from __future__ import print_function, division, absolute_import
+
+from numba.misc.numba_entry import main
+
+if __name__ == "__main__":
+    main()
