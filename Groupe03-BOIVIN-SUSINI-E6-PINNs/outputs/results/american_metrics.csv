@@ -1,0 +1,2 @@
+MAE_vs_european,early_exercise_premium_mean,max_early_exercise_constraint_violation,mean_early_exercise_constraint_violation,final_loss,train_time_s,epochs
+0.886,0.8852,0.361,0.011758,8.959135,461.8,10006
