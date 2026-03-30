@@ -1,0 +1,44 @@
+{
+  "train_period": {
+    "start": "2018-01-01",
+    "end": "2022-12-30"
+  },
+  "test_period": {
+    "start": "2023-01-02",
+    "end": "2024-06-28"
+  },
+  "assets": [
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "NVDA",
+    "JPM",
+    "BRK-B",
+    "JNJ",
+    "UNH",
+    "AMZN",
+    "XOM"
+  ],
+  "sector_constraints": {
+    "Technologie": 0.45,
+    "Santé": 0.25
+  },
+  "market_implied_risk_aversion": 10.27316310676391,
+  "views": [
+    {
+      "name": "MSFT > GOOGL  (+4 %)",
+      "Q": 0.04,
+      "confidence": 0.55
+    },
+    {
+      "name": "NVDA = 28 %/an",
+      "Q": 0.28,
+      "confidence": 0.7
+    },
+    {
+      "name": "Tech > Énergie (+5 %)",
+      "Q": 0.05,
+      "confidence": 0.45
+    }
+  ]
+}
