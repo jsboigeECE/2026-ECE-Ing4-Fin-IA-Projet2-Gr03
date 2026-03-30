@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.vrb
+
+# Local/private presenter notes
+docs/oral_notes_private.tex
+docs/oral_notes_private.pdf
+
+# Local tool metadata
+.codex
+.claude/

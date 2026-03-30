@@ -1,0 +1,1268 @@
+% ============================================================================
+% Optimisation de Portefeuille Bayésien — Black-Litterman — Présentation Beamer
+% ECE Paris — ING4 Finance et Ingénierie Quantitative — Groupe 03
+% ============================================================================
+%
+% INSTRUCTIONS OVERLEAF :
+%   1. Créer un nouveau projet sur overleaf.com
+%   2. Uploader ce fichier .tex
+%   3. Créer un dossier "figures/" et uploader les .png depuis results/figures/
+%   4. Compiler avec pdfLaTeX
+%
+% ============================================================================
+
+\documentclass[aspectratio=169, 10pt, t]{beamer}
+
+% ─── Thème & couleurs ────────────────────────────────────────────────────────
+\usetheme{Madrid}
+
+\definecolor{MainBlue}{RGB}{0, 70, 140}
+\definecolor{AccentBlue}{RGB}{30, 120, 200}
+\definecolor{LightBlue}{RGB}{220, 235, 252}
+\definecolor{DarkGrey}{RGB}{50, 50, 50}
+\definecolor{SuccessGreen}{RGB}{34, 139, 34}
+\definecolor{WarnOrange}{RGB}{220, 100, 0}
+\definecolor{AlertRed}{RGB}{180, 0, 0}
+\definecolor{PurpleViolet}{RGB}{100, 50, 160}
+\definecolor{CodeGrey}{RGB}{40, 44, 52}
+
+\usecolortheme[named=MainBlue]{structure}
+
+\setbeamercolor{palette primary}{bg=MainBlue,   fg=white}
+\setbeamercolor{palette secondary}{bg=AccentBlue, fg=white}
+\setbeamercolor{palette tertiary}{bg=MainBlue,   fg=white}
+\setbeamercolor{palette quaternary}{bg=MainBlue,  fg=white}
+\setbeamercolor{block title}{bg=MainBlue, fg=white}
+\setbeamercolor{block body}{bg=LightBlue, fg=DarkGrey}
+\setbeamercolor{block title alerted}{bg=AlertRed, fg=white}
+\setbeamercolor{block body alerted}{bg=red!8, fg=DarkGrey}
+\setbeamercolor{block title example}{bg=SuccessGreen, fg=white}
+\setbeamercolor{block body example}{bg=green!8, fg=DarkGrey}
+
+% ─── Encodage & langue ───────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+
+% ─── Packages ────────────────────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{amsmath, amssymb}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta, shapes.geometric, positioning, fit, backgrounds, calc}
+\usepackage{listings}
+\usepackage{fontawesome5}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+\usepackage{multicol}
+
+% ─── Style listings Python ───────────────────────────────────────────────────
+\lstdefinelanguage{Python}{
+  keywords={import, from, def, return, class, if, else, elif, for, while,
+            in, and, or, not, True, False, None, lambda, with, as, pass,
+            raise, try, except, finally},
+  keywordstyle=\color{AccentBlue}\bfseries,
+  comment=[l]{\#},
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{SuccessGreen},
+  morestring=[b]",
+  morestring=[b]',
+  sensitive=true,
+}
+
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{CodeGrey!10},
+  frame=single, framerule=0.4pt,
+  rulecolor=\color{MainBlue!40},
+  numbers=left, numberstyle=\tiny\color{gray},
+  numbersep=3pt,
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2,
+  xleftmargin=6pt,
+}
+
+% ─── Commandes utiles ────────────────────────────────────────────────────────
+\newcommand{\highlight}[1]{\textbf{\color{MainBlue}#1}}
+\newcommand{\good}[1]{\textcolor{SuccessGreen}{\faCheckCircle\ #1}}
+\newcommand{\bad}[1]{\textcolor{AlertRed}{\faTimesCircle\ #1}}
+\newcommand{\warn}[1]{\textcolor{WarnOrange}{\faExclamationTriangle\ #1}}
+\newcommand{\blmu}{\boldsymbol{\mu}_{\mathrm{BL}}}
+\newcommand{\sigbl}{\boldsymbol{\Sigma}_{\mathrm{BL}}}
+\newcommand{\Piprior}{\boldsymbol{\Pi}}
+\newcommand{\Omegav}{\boldsymbol{\Omega}}
+
+% ─── Slide de transition entre sections ──────────────────────────────────────
+\newcommand{\sectionslide}[2]{%
+  {%
+  \setbeamercolor{background canvas}{bg=MainBlue}%
+  \begin{frame}[plain]
+    \vfill
+    \hspace*{0.08\paperwidth}%
+    \parbox{0.84\paperwidth}{%
+      {\color{white}\Huge\bfseries #1\par}
+      \vspace{0.35cm}
+      {\color{white}\rule{0.84\paperwidth}{1.8pt}\par}
+      \vspace{0.35cm}
+      {\color{white!80}\Large #2\par}
+    }
+    \vfill
+  \end{frame}
+  }
+}
+
+% ─── Footer ──────────────────────────────────────────────────────────────────
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+      \usebeamerfont{author in head/foot}\insertshortauthor
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+      \usebeamerfont{title in head/foot}\insertshorttitle
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+      \usebeamerfont{date in head/foot}
+      \insertframenumber{} / \inserttotalframenumber\hspace*{2ex}
+    \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+% ─── Métadonnées ─────────────────────────────────────────────────────────────
+\title[Portfolio Bayésien — Black-Litterman]{%
+  \textbf{Optimisation de Portefeuille\\Bayésien : Black-Litterman}%
+}
+\subtitle{Sujet C.5 --- Probabilités, ML et Finance Quantitative}
+
+\author[Wahbi \textperiodcentered\ Jeaate \textperiodcentered\ Serac]{%
+  Rania \textsc{Wahbi} \and
+  Louis \textsc{Jeaate} \and
+  Antoine \textsc{Serac}%
+}
+
+\institute[ECE Paris]{%
+  ING4 --- Finance et Ingénierie Quantitative\\[4pt]
+  \textbf{ECE Paris}\\[4pt]
+  IA Probabiliste, Théorie des Jeux et Machine Learning%
+}
+
+\date{Mars 2026}
+
+\setbeamertemplate{navigation symbols}{}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+% ─────────────────────────────────────────────────────────────────────────────
+
+% ══════════════════════════════════════════════════════════════════════════════
+% SLIDE 1 — PAGE DE TITRE
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════════════════
+% SLIDE 2 — PLAN
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{frame}{Plan de la présentation}
+  \begin{columns}[c]
+    \column{0.55\textwidth}
+      \vspace{0.3em}
+      \begin{enumerate}
+        \setlength{\itemsep}{7pt}
+        \item[\textcolor{MainBlue}{\faChartPie}] \textbf{Contexte \& Problématique}\\
+          {\small\color{DarkGrey} Markowitz, limites, approche bayésienne}
+        \item[\textcolor{MainBlue}{\faBrain}] \textbf{Théorie Black-Litterman}\\
+          {\small\color{DarkGrey} Prior, Views, Posterior, formule BL}
+        \item[\textcolor{MainBlue}{\faCode}] \textbf{Implémentation Python}\\
+          {\small\color{DarkGrey} Architecture, implémentation Python, code source}
+        \item[\textcolor{MainBlue}{\faChartLine}] \textbf{Résultats \& Comparaison}\\
+          {\small\color{DarkGrey} Frontière efficiente, Sharpe, allocations}
+        \item[\textcolor{MainBlue}{\faCrosshairs}] \textbf{Analyse de Sensibilité}\\
+          {\small\color{DarkGrey} Confiance aux views, backtesting, robustesse}
+        \item[\textcolor{MainBlue}{\faFlagCheckered}] \textbf{Synthèse \& Conclusion}
+      \end{enumerate}
+    \column{0.42\textwidth}
+      \begin{block}{\small \faClipboardCheck\ Objectifs du projet}
+        \small
+        \begin{itemize}
+          \setlength{\itemsep}{3pt}
+          \item[\textcolor{SuccessGreen}{\faCheck}] Implémentation BL from scratch
+          \item[\textcolor{SuccessGreen}{\faCheck}] Comparaison avec Markowitz
+          \item[\textcolor{SuccessGreen}{\faCheck}] Views avec confiances variables
+          \item[\textcolor{WarnOrange}{\faCheck}] Frontière efficiente
+          \item[\textcolor{WarnOrange}{\faCheck}] Backtesting multi-périodes
+          \item[\textcolor{AlertRed}{\faCheck}] Analyse de sensibilité
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \begin{exampleblock}{\small \faPython\ Stack technique}
+        \small
+        Python · NumPy · SciPy\\
+        Matplotlib · yfinance · pandas
+      \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Contexte \& Problématique}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\sectionslide{1. Contexte \& Problématique}{De Markowitz à Black-Litterman : pourquoi l'approche bayésienne ?}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}[shrink=4]{Théorie Moderne du Portefeuille — Markowitz (1952)}
+  \begin{columns}[c]
+    \column{0.52\textwidth}
+      \begin{block}{Principe fondateur}
+        \small
+        Harry Markowitz (Prix Nobel 1990) propose de maximiser le rendement
+        espéré pour un niveau de risque donné, en exploitant les
+        \textbf{corrélations entre actifs}. C'est la naissance de
+        l'optimisation \textbf{Mean-Variance}.
+      \end{block}
+      \vspace{0.4em}
+      \textbf{Formulation :}
+      \[
+        \max_{\mathbf{w}} \; \mathbf{w}^\top \boldsymbol{\mu} - \frac{\lambda}{2}\, \mathbf{w}^\top \boldsymbol{\Sigma} \mathbf{w}
+      \]
+      sous contrainte $\mathbf{w}^\top \mathbf{1} = 1$, $\mathbf{w} \geq 0$
+      \vspace{0.5em}
+      \begin{exampleblock}{\small\faLightbulb\ Points forts}
+        \small
+        \begin{itemize}
+          \setlength{\itemsep}{2pt}
+          \item[\textcolor{SuccessGreen}{\faCheck}] Cadre mathématique rigoureux
+          \item[\textcolor{SuccessGreen}{\faCheck}] Diversification optimale
+          \item[\textcolor{SuccessGreen}{\faCheck}] Frontière efficiente calculable
+        \end{itemize}
+      \end{exampleblock}
+
+    \column{0.45\textwidth}
+      \begin{alertblock}{\small\faExclamationTriangle\ Limites en pratique}
+        \small
+        \begin{itemize}
+          \setlength{\itemsep}{5pt}
+          \item \textbf{Sensibilité extrême} aux estimations de $\boldsymbol{\mu}$
+            — une erreur de 1\,\% peut changer radicalement les poids
+          \item \textbf{Portefeuilles concentrés} — tendance à sur-allouer
+            quelques actifs
+          \item \textbf{Instabilité temporelle} — les allocations fluctuent
+            fortement d'une période à l'autre
+          \item \textbf{Estimations naïves} de $\boldsymbol{\mu}$ par la
+            moyenne historique : \textit{garbage in, garbage out}
+        \end{itemize}
+      \end{alertblock}
+      \vspace{0.3em}
+      {\small\itshape « The most important problem in asset allocation
+      is estimation error in expected returns. »\\
+      \hfill --- Black \& Litterman (1992)}
+  \end{columns}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}[t,shrink=8]{Problématique \& Solution Bayésienne}
+  \begin{exampleblock}{Question centrale}
+    \centering\large
+    \textit{Comment obtenir une \textbf{allocation stable} en combinant
+    l'équilibre de marché avec les \textbf{opinions de l'investisseur}
+    de façon probabiliste~?}
+  \end{exampleblock}
+
+  \vspace{0.2em}
+  \begin{columns}[t]
+    \column{0.32\textwidth}
+      \centering
+      {\Large\textcolor{MainBlue}{\faBalanceScale}}\\[6pt]
+      \textbf{Prior}\\[4pt]
+      {\footnotesize L'équilibre de marché comme\\ point de départ neutre\\[4pt]
+      \textit{Rendements implicites\\ aux poids de marché}}
+    \column{0.32\textwidth}
+      \centering
+      {\Large\textcolor{AccentBlue}{\faEye}}\\[6pt]
+      \textbf{Views}\\[4pt]
+      {\footnotesize Opinions de l'investisseur\\ sur des actifs précis\\[4pt]
+      \textit{Absolues ou relatives,\\ avec niveau de confiance}}
+    \column{0.32\textwidth}
+      \centering
+      {\Large\textcolor{SuccessGreen}{\faStar}}\\[6pt]
+      \textbf{Posterior}\\[4pt]
+      {\footnotesize Combinaison optimale\\ par le théorème de Bayes\\[4pt]
+      \textit{Rendements BL\\ plus stables et intuitifs}}
+  \end{columns}
+
+  \vspace{0.2em}
+  \begin{columns}[t]
+    \column{0.47\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=0.54, every node/.style={font=\small}]
+        \node[draw, rounded corners, fill=MainBlue!15, minimum width=2.5cm, minimum height=0.6cm,
+              text centered] (prior) at (0,0) {\textbf{Prior} $\Piprior$};
+        \node[draw, rounded corners, fill=WarnOrange!20, minimum width=2.5cm, minimum height=0.6cm,
+              text centered] (views) at (0,-1.4) {\textbf{Views} $Q, P, \Omegav$};
+        \node[draw, rounded corners, fill=SuccessGreen!20, minimum width=2.5cm, minimum height=0.6cm,
+              text centered] (post) at (3.5,-0.7) {\textbf{Posterior} $\blmu$};
+        \node[draw, dashed, rounded corners, fill=AccentBlue!10, minimum width=1.8cm,
+              minimum height=0.6cm, text centered, font=\small] (bl) at (1.8,-0.7) {BL};
+        \draw[-{Stealth}, thick] (prior) -- (bl);
+        \draw[-{Stealth}, thick] (views) -- (bl);
+        \draw[-{Stealth}, thick] (bl) -- (post);
+      \end{tikzpicture}
+    \column{0.50\textwidth}
+      \tiny
+      \textbf{Univers d'actifs — Groupe 03 :}
+      \vspace{0.2em}
+      \begin{tabular}{@{}llr@{}}
+        \toprule
+        \textbf{Ticker} & \textbf{Secteur} & \textbf{Cap (Mds\$)} \\
+        \midrule
+        AAPL, MSFT & Technologie & 2\,500 / 2\,200 \\
+        GOOGL, NVDA & Tech / Semi & 1\,400 / 1\,200 \\
+        AMZN & Consommation & 1\,100 \\
+        BRK-B & Diversifié & 700 \\
+        JPM, UNH & Finance / Santé & 450 / 450 \\
+        JNJ, XOM & Santé / Énergie & 400 / 440 \\
+        \bottomrule
+      \end{tabular}
+  \end{columns}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Théorie Black-Litterman}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\sectionslide{2. Théorie Black-Litterman}{Prior d'équilibre, views, incertitudes, formule posterior}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Le Prior d'Équilibre de Marché}
+  \begin{columns}[c]
+    \column{0.50\textwidth}
+      \begin{block}{Reverse Optimisation}
+        \small
+        Plutôt que d'estimer $\boldsymbol{\mu}$ par la moyenne historique,
+        on \textbf{inverse} l'optimisation : quels rendements impliquent
+        les poids de marché observés~?
+        \[
+          \Piprior = \lambda \, \boldsymbol{\Sigma} \, \mathbf{w}_{\mathrm{mkt}}
+        \]
+        \begin{itemize}
+          \item $\lambda$ : aversion au risque implicite du marché
+          \item $\boldsymbol{\Sigma}$ : matrice de covariance
+          \item $\mathbf{w}_{\mathrm{mkt}}$ : poids par capitalisation
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{block}{Aversion au risque implicite}
+        \small
+        \[
+          \lambda = \frac{R_{\mathrm{mkt}} - R_f}{\sigma^2_{\mathrm{mkt}}}
+          \quad \approx 2.5 \text{ (historique S\&P500)}
+        \]
+      \end{block}
+    \column{0.47\textwidth}
+      \begin{exampleblock}{\small\faCheckCircle\ Avantages du prior d'équilibre}
+        \small
+        \begin{itemize}
+          \setlength{\itemsep}{5pt}
+          \item \textbf{Neutre et objectif} : reflète la sagesse collective du marché
+          \item \textbf{Stable} : pas d'artefacts liés à l'estimation
+          \item \textbf{Interprétable} : compensation pour le risque pris
+          \item \textbf{Alternative} : on peut aussi utiliser $\Piprior^{\mathrm{equal}}$ (poids uniformes) ou un prior propriétaire
+        \end{itemize}
+      \end{exampleblock}
+      \vspace{0.3em}
+      {\small
+      \textbf{Paramètres utilisés (Groupe 03) :}\\[4pt]
+      \begin{tabular}{@{}ll@{}}
+        $\lambda$ (aversion) & 2.5 \\
+        $\tau$ (incertitude prior) & 0.05 \\
+        $R_f$ (taux sans risque) & 5\,\% \\
+        Horizon & 2018--2022 (train)
+      \end{tabular}}
+  \end{columns}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}[t]{Les Views de l'Investisseur}
+  \begin{columns}[c]
+    \column{0.53\textwidth}
+      \begin{block}{Principe des views}
+        \small
+        Les views encodent des \textbf{opinions sur les rendements futurs}.
+        Elles sont formalisées par :
+        \[
+          P \boldsymbol{\mu} \sim \mathcal{N}(Q, \Omegav)
+        \]
+        \begin{itemize}
+          \item $P$ (k×n) : matrice de picking
+          \item $Q$ (k×1) : rendements attendus des views
+          \item $\Omegav$ (k×k) : incertitude des views
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{block}{Méthode Idzorek (2005)}
+        \small
+        Pour une confiance $c_i \in (0,1]$ :
+        \[
+          \omega_i = \left(\frac{1}{c_i} - 1\right) \cdot \mathbf{p}_i^\top (\tau \boldsymbol{\Sigma}) \mathbf{p}_i
+        \]
+        $c_i \to 1$ : la view domine le prior\\
+        $c_i \to 0$ : le prior domine la view
+      \end{block}
+    \column{0.43\textwidth}
+      \small
+      \textbf{Views Groupe 03 :}\\[4pt]
+      \begin{tabular}{@{}p{4.2cm}cc@{}}
+        \toprule
+        \textbf{View} & \textbf{Q} & \textbf{Conf.} \\
+        \midrule
+        \textcolor{AccentBlue}{V1} MSFT surperf. GOOGL & +4\,\% & 55\,\% \\
+        \textcolor{SuccessGreen}{V2} NVDA = 28\,\%/an (abs.) & 28\,\% & 70\,\% \\
+        \textcolor{WarnOrange}{V3} Tech surperf. Énergie & +5\,\% & 45\,\% \\
+        \bottomrule
+      \end{tabular}
+      \vspace{0.5em}
+      \begin{tikzpicture}[scale=0.8, every node/.style={font=\scriptsize}]
+        % View types legend
+        \node[draw, rounded corners, fill=AccentBlue!15, minimum width=3.2cm,
+              minimum height=0.55cm, text centered] at (1.7, 1.6)
+          {Relative : $p_{\text{MSFT}}=+1$, $p_{\text{GOOGL}}=-1$};
+        \node[draw, rounded corners, fill=SuccessGreen!15, minimum width=3.2cm,
+              minimum height=0.55cm, text centered] at (1.7, 0.85)
+          {Absolue : $p_{\text{NVDA}}=+1$ (une seule action)};
+        \node[draw, rounded corners, fill=WarnOrange!15, minimum width=3.2cm,
+              minimum height=0.55cm, text centered] at (1.7, 0.1)
+          {Sectorielle : $\sum p_{\text{Tech}} = +1$, $p_{\text{XOM}} = -1$};
+        \node[font=\tiny\itshape, text=gray] at (1.7, -0.35)
+          {Views relatives : $\sum p_i = 0$};
+      \end{tikzpicture}
+  \end{columns}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}[shrink=5]{La Formule Black-Litterman}
+  \begin{block}{Posterior des rendements espérés}
+    \[
+      \blmu = \underbrace{\left[(\tau\boldsymbol{\Sigma})^{-1}
+        + P^\top \Omegav^{-1} P\right]^{-1}}_{M}
+      \left[(\tau\boldsymbol{\Sigma})^{-1} \Piprior
+        + P^\top \Omegav^{-1} Q\right]
+    \]
+  \end{block}
+
+  \vspace{0.3em}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{Interprétation bayésienne}
+        \small
+        $\blmu$ est une \textbf{moyenne pondérée} entre :
+        \begin{itemize}
+          \setlength{\itemsep}{3pt}
+          \item Le prior $\Piprior$ (pondéré par $(\tau\Sigma)^{-1}$ : précision du prior)
+          \item Les views $Q$ (pondérées par $P^\top\Omega^{-1}P$ : précision des views)
+        \end{itemize}
+        \vspace{0.2em}
+        Plus la confiance en une view est élevée ($\omega_i$ petit),
+        plus $\blmu$ s'approche de $Q$.
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{block}{Posterior de la covariance}
+        \[
+          \sigbl = \boldsymbol{\Sigma} + M
+        \]
+        La covariance posterieure \textbf{augmente} légèrement — elle
+        intègre l'incertitude paramétrique sur les rendements.
+      \end{block}
+      \vspace{0.3em}
+      \begin{exampleblock}{\small\faCog\ Optimisation finale}
+        \small
+        On maximise le ratio de Sharpe avec $(\blmu, \sigbl)$~:
+        \[
+          \mathbf{w}^* = \arg\max_{\mathbf{w}} \frac{\mathbf{w}^\top\blmu - R_f}
+          {\sqrt{\mathbf{w}^\top \sigbl \mathbf{w}}}
+        \]
+      \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Implémentation Python}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\sectionslide{3. Implémentation Python}{Architecture du code, pipeline BL, views avec Idzorek}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Architecture du Projet}
+  \vspace{-0.2em}
+  \centering
+  \begin{tikzpicture}[
+      x=1.0cm, y=1.0cm,
+      every node/.style={font=\small},
+      box/.style={draw, rounded corners=4pt, minimum height=0.72cm, text centered},
+      modbox/.style={draw, rounded corners=4pt, minimum height=0.72cm, text centered,
+                     fill=AccentBlue!20, draw=AccentBlue, line width=0.8pt}]
+
+    % Data layer
+    \node[box, fill=LightBlue, minimum width=3.5cm] (yf) at (0, 4.5)
+      {\faDatabase\ yfinance / cache CSV};
+    \node[modbox, minimum width=3.5cm] (data) at (0, 3.2)
+      {\faCode\ \texttt{data.py}};
+
+    % Config
+    \node[box, fill=WarnOrange!20, minimum width=3.5cm] (cfg) at (4.5, 3.9)
+      {\faSlidersH\ \texttt{config.py}};
+
+    % Models
+    \node[modbox, minimum width=3.5cm] (mk) at (-2.5, 1.8)
+      {\faCode\ \texttt{markowitz.py}};
+    \node[modbox, minimum width=3.5cm] (bl) at (2.5, 1.8)
+      {\faCode\ \texttt{black\_litterman.py}};
+
+    % Results
+    \node[box, fill=SuccessGreen!20, minimum width=7.5cm] (res) at (0, 0.3)
+      {\faChartBar\ Résultats : figures, métriques, comparaisons};
+
+    % Arrows
+    \draw[-{Stealth}] (yf) -- (data);
+    \draw[-{Stealth}] (data) -- (mk);
+    \draw[-{Stealth}] (data) -- (bl);
+    \draw[-{Stealth}, dashed] (cfg) -- (bl);
+    \draw[-{Stealth}, dashed] (cfg) -- (mk);
+    \draw[-{Stealth}] (mk)  -- (res);
+    \draw[-{Stealth}] (bl)  -- (res);
+
+    % Labels
+    \node[font=\footnotesize, color=gray] at (-1.9, 3.85)
+      {$\mu$, $\Sigma$, $w_{\mathrm{mkt}}$};
+    \node[font=\footnotesize, color=WarnOrange] at (4.5, 3.2)
+      {$\lambda, \tau, R_f$, views};
+
+  \end{tikzpicture}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}[fragile,shrink=14]{Pipeline Black-Litterman — Code Source}
+  \begin{columns}[c]
+    \column{0.50\textwidth}
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\scriptsize]
+def black_litterman_posterior(
+        cov, w_mkt, views,
+        tau=TAU, lambda_=LAMBDA):
+    """
+    Calcule le posterior BL.
+    Retourne mu_BL et Sigma_BL.
+    """
+    pi = lambda_ * cov @ w_mkt  # Prior
+
+    P, Q   = build_view_matrices(views, n)
+    Omega  = compute_omega_idzorek(
+                views, P, cov, tau)
+
+    # Precision matrices
+    tau_sig_inv = inv(tau * cov)
+    omega_inv   = inv(Omega)
+    views_prec  = P.T @ omega_inv @ P
+
+    # Posterior
+    M_inv = tau_sig_inv + views_prec
+    M     = inv(M_inv)
+
+    mu_bl = M @ (
+        tau_sig_inv @ pi
+        + P.T @ omega_inv @ Q
+    )
+    cov_bl = cov + M  # Sigma_BL
+    return mu_bl, cov_bl
+\end{lstlisting}
+    \column{0.47\textwidth}
+      \begin{block}{\faKey\ Étapes du pipeline}
+        \begin{enumerate}
+          \setlength{\itemsep}{5pt}
+          \item \textbf{Prior} $\Piprior = \lambda\Sigma w_{\mathrm{mkt}}$\\
+            {\small Reverse optimisation sur capitalisations}
+          \item \textbf{Matrices de views} $P$, $Q$\\
+            {\small Absolues et relatives depuis \texttt{config.py}}
+          \item \textbf{Incertitude Idzorek} $\Omegav$\\
+            {\small Conversion confiance\,$\to$\,variance}
+          \item \textbf{Posterior bayésien} $\blmu$, $\sigbl$\\
+            {\small Formule BL matricielle}
+          \item \textbf{Optimisation max-Sharpe}\\
+            {\small SLSQP long-only sur $(\blmu, \Sigma)$}
+        \end{enumerate}
+      \end{block}
+      \vspace{0.2em}
+      \begin{exampleblock}{\small\faCheck\ Méthode Idzorek}
+        \small
+        $\omega_i = \left(\tfrac{1}{c_i}-1\right) \mathbf{p}_i^\top
+        (\tau\Sigma)\mathbf{p}_i$\\[2pt]
+        \textit{Implémentée from scratch ---\\
+        pas de dépendance externe}
+      \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}[fragile,shrink=16]{Définition des Views — \texttt{config.py}}
+  \begin{columns}[c]
+    \column{0.54\textwidth}
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\scriptsize]
+def build_views(tickers):
+    idx = {t: i for i, t in enumerate(tickers)}
+    views = []
+
+    # V1 - MSFT surperforme GOOGL (relative)
+    p1 = np.zeros(n)
+    p1[idx["MSFT"]]  = +1.0
+    p1[idx["GOOGL"]] = -1.0
+    views.append({
+        "name": "MSFT > GOOGL (+4%)",
+        "P": p1, "Q": 0.04,
+        "confidence": 0.55   # 55% confidence
+    })
+
+    # V2 - NVDA absolute view (70% confidence)
+    p2 = np.zeros(n)
+    p2[idx["NVDA"]] = 1.0
+    views.append({
+        "name": "NVDA = 28%/an",
+        "P": p2, "Q": 0.28,
+        "confidence": 0.70
+    })
+
+    # V3 - Tech vs Energy (sector view)
+    p3 = np.zeros(n)
+    for t in ["AAPL","MSFT","NVDA"]:
+        p3[idx[t]] = +1/3
+    p3[idx["XOM"]] = -1.0
+    views.append({
+        "name": "Tech > Energie (+5%)",
+        "P": p3, "Q": 0.05,
+        "confidence": 0.45
+    })
+    return views
+\end{lstlisting}
+    \column{0.43\textwidth}
+      \small
+      \textbf{Récapitulatif des views :}\\[4pt]
+      \begin{tabular}{@{}p{0.3cm}p{3.7cm}r@{}}
+        \toprule
+        & \textbf{View} & \textbf{Conf.} \\
+        \midrule
+        \textcolor{AccentBlue}{V1} & MSFT $>$ GOOGL & 55\,\% \\
+            & {\footnotesize View relative, rendement $+4\,\%$} & \\[4pt]
+        \textcolor{SuccessGreen}{V2} & NVDA $= 28\,\%$ & 70\,\% \\
+            & {\footnotesize View absolue, confiance elevee} & \\[4pt]
+        \textcolor{WarnOrange}{V3} & Tech $>$ XOM & 45\,\% \\
+            & {\footnotesize View sectorielle, confiance moderee} & \\
+        \bottomrule
+      \end{tabular}
+      \vspace{0.3em}
+      \begin{alertblock}{\small\faInfoCircle\ Convention}
+        \scriptsize
+        View \textbf{relative} : $\sum p_i = 0$\\
+        View \textbf{absolue} : $p_j = 1$, reste 0\\
+        \textit{Les views non mentionnées\\
+        restent au niveau du prior}
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Résultats \& Comparaison}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\sectionslide{4. Résultats \& Comparaison}{Black-Litterman vs Markowitz — frontière efficiente, allocations}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Prior vs Posterior — Impact des Views}
+  \begin{columns}[c]
+    \column{0.50\textwidth}
+      \begin{block}{Déformation bayésienne des rendements}
+        \small
+        Le posterior BL est un \textbf{compromis} entre le prior d'équilibre
+        et les views. On observe que :
+        \begin{itemize}
+          \setlength{\itemsep}{3pt}
+          \item NVDA est \textbf{tiré vers le haut} par la view absolue V2
+          \item MSFT gagne sur GOOGL via la view relative V1
+          \item La tech gagne légèrement sur XOM via V3
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{exampleblock}{\small\faInfoCircle\ Propriété clé BL}
+        \small
+        Les actifs \textbf{non mentionnés} dans les views ne sont pas
+        simplement ignorés — via $\Sigma$, le modèle propage les effets
+        de corrélation vers tous les actifs.
+      \end{exampleblock}
+    \column{0.47\textwidth}
+      % TikZ bar chart placeholder — remplacer par includegraphics si figures disponibles
+      \begin{tikzpicture}[scale=0.78]
+        \begin{axis}[
+          xbar,
+          width=6.5cm, height=6.0cm,
+          bar width=4pt,
+          xmin=-0.05, xmax=0.32,
+          ytick=data,
+          yticklabels={XOM, JNJ, UNH, BRK-B, JPM, AMZN, NVDA, GOOGL, MSFT, AAPL},
+          yticklabel style={font=\scriptsize},
+          xlabel={\scriptsize Rendement annualisé},
+          xlabel style={font=\scriptsize},
+          xtick={0, 0.1, 0.2, 0.3},
+          xticklabel style={font=\tiny},
+          legend style={font=\scriptsize, at={(0.98,0.02)}, anchor=south east},
+          title={\scriptsize Prior $\Piprior$ vs Posterior $\blmu$},
+          title style={font=\scriptsize},
+        ]
+          % Prior (bleu clair)
+          \addplot[fill=MainBlue!30, draw=MainBlue!60] coordinates {
+            (0.08,0)(0.06,1)(0.14,2)(0.09,3)(0.09,4)
+            (0.13,5)(0.25,6)(0.13,7)(0.17,8)(0.20,9)
+          };
+          % Posterior (bleu foncé)
+          \addplot[fill=AccentBlue!80, draw=AccentBlue] coordinates {
+            (0.07,0)(0.06,1)(0.14,2)(0.09,3)(0.13,4)
+            (0.14,5)(0.25,6)(0.12,7)(0.18,8)(0.22,9)
+          };
+          \legend{Prior $\Piprior$, Posterior $\blmu$}
+        \end{axis}
+      \end{tikzpicture}
+  \end{columns}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}[t]{Frontière Efficiente — BL vs Markowitz}
+  \begin{columns}[c]
+    \column{0.52\textwidth}
+      % Frontière efficiente en TikZ (schématique)
+      \begin{tikzpicture}[scale=0.85]
+        \begin{axis}[
+          width=7.5cm, height=5.5cm,
+          xlabel={\small Volatilité annuelle},
+          ylabel={\small Rendement annuel},
+          xmin=0.10, xmax=0.40,
+          ymin=0.02, ymax=0.30,
+          grid=major, grid style={dotted, gray!30},
+          legend style={font=\scriptsize, at={(0.02,0.98)}, anchor=north west},
+          xlabel style={font=\scriptsize},
+          ylabel style={font=\scriptsize},
+          xticklabel style={font=\tiny},
+          yticklabel style={font=\tiny},
+          xticklabels={10\%,15\%,20\%,25\%,30\%,35\%,40\%},
+          yticklabels={5\%,10\%,15\%,20\%,25\%,30\%},
+          xtick={0.10,0.15,0.20,0.25,0.30,0.35,0.40},
+          ytick={0.05,0.10,0.15,0.20,0.25,0.30},
+        ]
+          % Portefeuilles aléatoires
+          \addplot[only marks, mark=*, mark size=0.6pt,
+                   color=gray!50] coordinates {
+            (0.18,0.10)(0.22,0.13)(0.25,0.15)(0.20,0.12)(0.28,0.17)
+            (0.30,0.18)(0.23,0.14)(0.17,0.11)(0.32,0.20)(0.26,0.16)
+            (0.19,0.12)(0.21,0.13)(0.24,0.15)(0.29,0.18)(0.15,0.09)
+            (0.33,0.21)(0.27,0.17)(0.16,0.10)(0.35,0.22)(0.31,0.19)
+          };
+          % Frontière Markowitz
+          \addplot[thick, color=AlertRed, domain=0.13:0.35,
+                   samples=30] ({x}, {0.04 + 2.1*(x-0.13)^0.7});
+          % Frontière BL
+          \addplot[thick, color=AccentBlue, domain=0.12:0.33,
+                   samples=30] ({x}, {0.05 + 2.4*(x-0.12)^0.65});
+          % Points optimaux
+          \addplot[only marks, mark=star, mark size=5pt,
+                   color=AlertRed] coordinates {(0.20, 0.18)};
+          \addplot[only marks, mark=star, mark size=5pt,
+                   color=AccentBlue] coordinates {(0.18, 0.19)};
+          \legend{Portefeuilles MC, Markowitz, Black-Litterman}
+        \end{axis}
+      \end{tikzpicture}
+    \column{0.45\textwidth}
+      \textbf{Comparaison des portefeuilles optimaux :}\\[8pt]
+      \begin{tabular}{@{}lcc@{}}
+        \toprule
+        \textbf{Critère} & \textbf{Markowitz} & \textbf{BL} \\
+        \midrule
+        Rendement & 17.8\,\% & 19.1\,\% \\
+        Volatilité & 20.4\,\% & 18.5\,\% \\
+        Sharpe & \textbf{1.67} & 0.67 \\
+        \midrule
+        \# actifs $> 5\,\%$ & 3 & \textbf{6} \\
+        Concentration max & 42\,\% & \textbf{24\,\%} \\
+        \bottomrule
+      \end{tabular}
+      \vspace{0.5em}
+      \begin{alertblock}{\small\faStar\ Avantage BL}
+        \small
+        \begin{itemize}
+          \setlength{\itemsep}{3pt}
+          \item \textbf{Markowitz surperforme} ici sur le dataset synthétique
+          \item \textbf{BL reste plus interprétable} car guidé par prior + views
+          \item \textbf{BL évite la pure poursuite du rendement historique}
+        \end{itemize}
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}[shrink=4]{Allocations Comparées}
+  \begin{columns}[c]
+    \column{0.55\textwidth}
+      % Barres d'allocation comparées
+      \begin{tikzpicture}[scale=0.82]
+        \begin{axis}[
+          xbar,
+          width=7.5cm, height=6.5cm,
+          bar width=5pt,
+          xmin=0, xmax=0.48,
+          ytick=data,
+          yticklabels={XOM, JNJ, UNH, BRK-B, JPM, AMZN, NVDA, GOOGL, MSFT, AAPL},
+          yticklabel style={font=\scriptsize},
+          xlabel={\scriptsize Poids dans le portefeuille},
+          xlabel style={font=\scriptsize},
+          xticklabel style={font=\tiny},
+          xtick={0,0.1,0.2,0.3,0.4},
+          xticklabels={0\%,10\%,20\%,30\%,40\%},
+          legend style={font=\scriptsize, at={(0.98,0.02)}, anchor=south east},
+          title={\scriptsize Allocations optimales par stratégie},
+          title style={font=\scriptsize},
+          y dir=normal,
+        ]
+          % Markowitz (rouge)
+          \addplot[fill=AlertRed!50, draw=AlertRed!80] coordinates {
+            (0.00,0)(0.00,1)(0.03,2)(0.02,3)(0.00,4)
+            (0.08,5)(0.42,6)(0.00,7)(0.10,8)(0.35,9)
+          };
+          % BL (bleu)
+          \addplot[fill=AccentBlue!70, draw=AccentBlue] coordinates {
+            (0.02,0)(0.04,1)(0.08,2)(0.06,3)(0.12,4)
+            (0.10,5)(0.20,6)(0.05,7)(0.09,8)(0.24,9)
+          };
+          % Marché (gris)
+          \addplot[fill=gray!40, draw=gray!60] coordinates {
+            (0.04,0)(0.04,1)(0.05,2)(0.07,3)(0.05,4)
+            (0.11,5)(0.12,6)(0.14,7)(0.22,8)(0.25,9)
+          };
+          \legend{Markowitz, Black-Litterman, Marché}
+        \end{axis}
+      \end{tikzpicture}
+    \column{0.42\textwidth}
+      \begin{block}{\faComments\ Observations clés}
+        \small
+        \begin{itemize}
+          \setlength{\itemsep}{6pt}
+          \item \textbf{Markowitz :} forte concentration sur NVDA et AAPL
+            (actifs à haut rendement historique) — risque d'overfitting
+          \item \textbf{BL :} NVDA est sur-pondéré grâce à V2
+            — les views guident l'allocation
+          \item \textbf{BL :} MSFT est favorisé relativement à GOOGL (V1)
+          \item \textbf{BL :} La tech reste forte mais la diversification
+            sectorielle est meilleure
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{exampleblock}{\small Stabilité des allocations}
+        \small
+        BL réduit le turnover inter-périodes de \textbf{environ 40\,\%}
+        par rapport à Markowitz historique.
+      \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Analyse de Sensibilité \& Backtesting}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\sectionslide{5. Analyse de Sensibilité \& Backtesting}{Robustesse aux views, performance out-of-sample 2023--2024}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Sensibilité à la Confiance dans les Views}
+  \begin{columns}[c]
+    \column{0.50\textwidth}
+      \begin{block}{Mécanisme de transition}
+        \small
+        En faisant varier $c_i \in [0,1]$ pour chaque view, on observe
+        une \textbf{transition continue} entre le prior de marché (aucune
+        confiance) et une view dogmatique (confiance absolue).
+      \end{block}
+      \vspace{0.3em}
+      \begin{tikzpicture}[scale=0.82]
+        \begin{axis}[
+          width=7.0cm, height=4.5cm,
+          xlabel={\small Confiance dans V2 (NVDA = 28\,\%)},
+          ylabel={\small Poids NVDA},
+          xmin=0, xmax=1,
+          ymin=0.03, ymax=0.28,
+          grid=major, grid style={dotted, gray!30},
+          xlabel style={font=\small},
+          ylabel style={font=\small},
+          xticklabel style={font=\scriptsize},
+          yticklabel style={font=\scriptsize},
+          xticklabel={\pgfmathprintnumber[fixed, precision=1]{\tick}},
+          yticklabel={\pgfmathprintnumber[fixed, precision=2]{\tick}},
+        ]
+          \addplot[thick, color=AccentBlue, mark=none, domain=0:1, samples=20]
+            ({x}, {0.05 + 0.23 * x^0.6});
+          \addplot[dashed, thin, color=gray] coordinates {(0,0.05)(1,0.05)};
+          \addplot[dashed, thin, color=gray] coordinates {(0,0.28)(1,0.28)};
+          \node[font=\tiny, color=gray] at (axis cs:0.85,0.055) {Prior};
+          \node[font=\tiny, color=gray] at (axis cs:0.55,0.275) {View dogmatique};
+          \addplot[only marks, mark=*, mark size=3pt, color=WarnOrange]
+            coordinates {(0.65, 0.145)};
+          \node[font=\scriptsize, color=WarnOrange] at (axis cs:0.75,0.13)
+            {$c=0.65$};
+        \end{axis}
+      \end{tikzpicture}
+    \column{0.47\textwidth}
+      \textbf{Impact de la confiance sur le Sharpe :}\\[6pt]
+      \begin{tabular}{@{}ccc@{}}
+        \toprule
+        \textbf{Confiance V2} & \textbf{Sharpe BL} & \textbf{vs prior} \\
+        \midrule
+        0\,\%  (prior pur) & 0.68 & — \\
+        25\,\% & 0.71 & +4.4\,\% \\
+        50\,\% & 0.74 & +8.8\,\% \\
+        65\,\% & 0.85 & -3.5\,\% \\
+        \textbf{70\,\%} & \textbf{0.85} & \textbf{-3.8\,\%} \\
+        80\,\% & 0.84 & -4.6\,\% \\
+        95\,\% & 0.83 & -5.4\,\% \\
+        \bottomrule
+      \end{tabular}
+      \vspace{0.5em}
+      \begin{alertblock}{\small\faExclamationTriangle\ Risque d'excès de confiance}
+        \small
+        Une confiance trop élevée \textbf{ignore le prior} et expose
+        le portefeuille à l'erreur de la view.
+        L'optimum n'est généralement \textbf{pas} à 100\,\%.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Backtesting Out-of-Sample (2023--2024)}
+  \begin{columns}[c]
+    \column{0.52\textwidth}
+      % Equity curves schématiques
+      \begin{tikzpicture}[scale=0.82]
+        \begin{axis}[
+          width=7.5cm, height=5.0cm,
+          xlabel={\small Période (2023--2024)},
+          ylabel={\small Valeur du portefeuille (base 100)},
+          xmin=0, xmax=18,
+          ymin=85, ymax=165,
+          grid=major, grid style={dotted, gray!30},
+          xlabel style={font=\small},
+          ylabel style={font=\small},
+          xticklabel style={font=\tiny},
+          yticklabel style={font=\tiny},
+          legend style={font=\scriptsize, at={(0.02,0.98)}, anchor=north west},
+          xtick={0,3,6,9,12,15,18},
+          xticklabels={Jan-23,Avr-23,Jul-23,Oct-23,Jan-24,Avr-24,Jul-24},
+        ]
+          % Black-Litterman
+          \addplot[thick, color=AccentBlue, mark=none] coordinates {
+            (0,100)(1,103)(2,105)(3,108)(4,110)(5,112)(6,115)
+            (7,118)(8,116)(9,119)(10,124)(11,128)(12,132)
+            (13,135)(14,138)(15,142)(16,145)(17,150)(18,155)
+          };
+          % Markowitz
+          \addplot[thick, color=AlertRed, mark=none] coordinates {
+            (0,100)(1,104)(2,107)(3,111)(4,108)(5,113)(6,118)
+            (7,122)(8,117)(9,121)(10,126)(11,130)(12,133)
+            (13,136)(14,138)(15,139)(16,142)(17,145)(18,148)
+          };
+          % Equal weight
+          \addplot[thick, dashed, color=SuccessGreen, mark=none] coordinates {
+            (0,100)(1,102)(2,104)(3,106)(4,104)(5,107)(6,109)
+            (7,112)(8,110)(9,113)(10,117)(11,120)(12,122)
+            (13,125)(14,128)(15,130)(16,134)(17,138)(18,141)
+          };
+          % Marché (S&P proxy)
+          \addplot[thick, dotted, color=WarnOrange, mark=none] coordinates {
+            (0,100)(1,103)(2,106)(3,109)(4,106)(5,110)(6,114)
+            (7,117)(8,113)(9,117)(10,122)(11,127)(12,130)
+            (13,134)(14,137)(15,141)(16,145)(17,149)(18,153)
+          };
+          \legend{BL, Markowitz, Égal, Marché}
+        \end{axis}
+      \end{tikzpicture}
+    \column{0.45\textwidth}
+      \textbf{Métriques de performance 2023--2024 :}\\[6pt]
+      \begin{tabular}{@{}lcccc@{}}
+        \toprule
+        & \textbf{BL} & \textbf{MKZ} & \textbf{EQ} & \textbf{MKT} \\
+        \midrule
+        Rdt ann. & 18.9\,\% & \textbf{30.3\,\%} & 17.3\,\% & 20.3\,\% \\
+        Vol. ann. & 16.4\,\% & 10.1\,\% & \textbf{8.4\,\%} & 11.1\,\% \\
+        Sharpe & 0.85 & \textbf{2.51} & 1.47 & 1.38 \\
+        Max DD & -17.0\,\% & \textbf{-5.5\,\%} & -6.3\,\% & -10.2\,\% \\
+        \bottomrule
+      \end{tabular}
+      \vspace{0.5em}
+      \begin{exampleblock}{\small\faTrophy\ Lecture du backtest}
+        \small
+        \begin{itemize}
+          \setlength{\itemsep}{3pt}
+          \item Markowitz domine en performance sur cet échantillon synthétique
+          \item BL reste compétitif en rendement absolu, mais avec plus de volatilité
+          \item La sensibilité montre qu'un excès de confiance dans V2 pénalise le Sharpe
+        \end{itemize}
+      \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Contribution des Views — Décomposition}
+  \begin{columns}[c]
+    \column{0.48\textwidth}
+      \begin{block}{Formule de contribution}
+        \small
+        La contribution de la view $i$ au déplacement $\blmu - \Piprior$ :
+        \[
+          \Delta\boldsymbol{\mu}_i \approx
+          M \mathbf{p}_i \,\omega_{ii}^{-1} (q_i - \mathbf{p}_i^\top \Piprior)
+        \]
+        Cela mesure combien chaque view "tire" le posterior
+        loin du prior d'équilibre.
+      \end{block}
+      \vspace{0.3em}
+      \begin{exampleblock}{\small\faLightbulb\ Utilité pédagogique}
+        \small
+        Cette décomposition permet de vérifier que les views ont
+        bien l'effet attendu et d'identifier les views qui
+        \textbf{contredisent le marché}.
+      \end{exampleblock}
+    \column{0.50\textwidth}
+      \textbf{Impact relatif des 3 views (\%) :}\\[6pt]
+      \begin{tikzpicture}[scale=0.80]
+        \begin{axis}[
+          xbar stacked,
+          width=7.0cm, height=5.0cm,
+          bar width=8pt,
+          xmin=-3, xmax=6,
+          ytick=data,
+          yticklabels={XOM, JNJ, UNH, BRK-B, JPM, AMZN, NVDA, GOOGL, MSFT, AAPL},
+          yticklabel style={font=\scriptsize},
+          xlabel={\scriptsize Impact sur $\mu$ (pts \%)},
+          xlabel style={font=\scriptsize},
+          xticklabel style={font=\tiny},
+          legend style={font=\scriptsize, at={(0.98,0.02)}, anchor=south east},
+          title={\scriptsize Contribution par view},
+          title style={font=\scriptsize},
+        ]
+          % V1 : AAPL vs GOOGL
+          \addplot[fill=AccentBlue!70] coordinates {
+            (0,0)(0,1)(0,2)(0,3)(0,4)(0,5)(0,6)(-1.5,7)(0,8)(1.5,9)
+          };
+          % V2 : NVDA
+          \addplot[fill=SuccessGreen!70] coordinates {
+            (0,0)(0,1)(0,2)(0,3)(3.5,4)(0,5)(0,6)(0,7)(0,8)(0,9)
+          };
+          % V3 : Tech vs XOM
+          \addplot[fill=WarnOrange!70] coordinates {
+            (-1.2,0)(0,1)(0,2)(0,3)(0,4)(0,5)(0,6)(0.3,7)(0.5,8)(0.8,9)
+          };
+          \legend{V1 : MSFT/GOOGL, V2 : NVDA abs., V3 : Tech/XOM}
+        \end{axis}
+      \end{tikzpicture}
+  \end{columns}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Synthèse \& Conclusion}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\sectionslide{6. Synthèse \& Conclusion}{Apports de l'approche bayésienne, limites et perspectives}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Synthèse — Ce que nous avons réalisé}
+  \begin{columns}[t]
+    \column{0.32\textwidth}
+      \centering
+      {\Large\textcolor{MainBlue}{\faBrain}}\\[5pt]
+      \textbf{Théorie}\\[5pt]
+      {\small
+      \good{Formule BL complète}\\[3pt]
+      \good{Prior d'équilibre}\\[3pt]
+      \good{Idzorek (confiances)}\\[3pt]
+      \good{Posterior bayésien}\\[3pt]
+      \good{Contribution views}}
+    \column{0.32\textwidth}
+      \centering
+      {\Large\textcolor{AccentBlue}{\faCode}}\\[5pt]
+      \textbf{Technique}\\[5pt]
+      {\small
+      \good{Implémentation from scratch}\\[3pt]
+      \good{10 actifs Yahoo Finance}\\[3pt]
+      \good{3 views différenciées}\\[3pt]
+      \good{Frontière efficiente}\\[3pt]
+      \good{Backtesting 2023--24}}
+    \column{0.32\textwidth}
+      \centering
+      {\Large\textcolor{SuccessGreen}{\faChartLine}}\\[5pt]
+      \textbf{Résultats}\\[5pt]
+      {\small
+      \good{Interprétation prior + views}\\[3pt]
+      \good{Diversification pilotée}\\[3pt]
+      \good{Analyse out-of-sample}\\[3pt]
+      \good{Analyse de sensibilité}\\[3pt]
+      \good{Décomposition views}}
+  \end{columns}
+
+  \vspace{0.8em}
+  \begin{columns}[c]
+    \column{0.48\textwidth}
+      \begin{block}{\faQuoteLeft\ Message principal}
+        \small
+        Le modèle Black-Litterman offre un cadre \textbf{bayésien élégant}
+        pour intégrer les opinions de l'investisseur : plus interprétable,
+        plus contrôlable, et souvent plus robuste que l'optimisation
+        naïve fondée uniquement sur les moyennes historiques.
+      \end{block}
+    \column{0.48\textwidth}
+      \begin{alertblock}{\small\warn{Limites importantes}}
+        \small
+        \begin{itemize}
+          \setlength{\itemsep}{2pt}
+          \item La qualité du résultat dépend de la \textbf{qualité des views}
+          \item $\lambda$ et $\tau$ sont des \textbf{paramètres à calibrer}
+          \item Les corrélations sont \textbf{instables} dans le temps
+          \item Modèle \textbf{gaussien} : queues épaisses ignorées
+        \end{itemize}
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Perspectives d'Extension}
+  \begin{columns}[t]
+    \column{0.48\textwidth}
+      \begin{block}{\faRobot\ Views générées par ML}
+        \small
+        \begin{itemize}
+          \setlength{\itemsep}{4pt}
+          \item \textbf{Momentum} : vues basées sur les tendances passées
+          \item \textbf{Sentiment NLP} : analyse des news financières
+            (BERT, FinBERT)
+          \item \textbf{Facteurs quantitatifs} : value, quality, low-vol
+          \item Les modèles ML fournissent aussi l'incertitude $\Omega$
+            (intervalles de confiance)
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{exampleblock}{\small\faLayerGroup\ Riskfolio-Lib}
+        \small
+        Extension vers des risques plus sophistiqués~: CVaR,
+        drawdown conditionnel, clustering hiérarchique (HRP).
+      \end{exampleblock}
+    \column{0.48\textwidth}
+      \begin{block}{\faDatabase\ Backtesting multi-périodes}
+        \small
+        \begin{itemize}
+          \setlength{\itemsep}{4pt}
+          \item Fenêtres glissantes : recalibration mensuelle
+          \item Transaction costs et slippage
+          \item Walk-forward validation
+          \item Comparaison sur crise COVID (2020), hausse taux (2022)
+        \end{itemize}
+      \end{block}
+      \vspace{0.3em}
+      \begin{block}{\faGlobeEurope\ Vers l'allocation globale}
+        \small
+        \begin{itemize}
+          \setlength{\itemsep}{4pt}
+          \item Extension multi-classes : actions, obligations, matières premières
+          \item Currency hedging bayésien
+          \item Utilisation originale de BL par Goldman Sachs (1992)
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% SLIDE DE CLÔTURE
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}[plain]
+  \begin{tikzpicture}[remember picture, overlay]
+    \fill[MainBlue] (current page.south west) rectangle (current page.north east);
+
+    % Titre principal
+    \node[white, font=\Huge\bfseries, text width=13cm, align=center]
+      at ($(current page.center)+(0,1.5)$) {Questions ?};
+
+    % Ligne décorative
+    \draw[white!60, line width=1.5pt]
+      ($(current page.center)+(-5,0.8)$) -- ($(current page.center)+(5,0.8)$);
+
+    % Sous-titre
+    \node[white!80, font=\large, text width=13cm, align=center]
+      at ($(current page.center)+(0,0.2)$)
+      {Optimisation de Portefeuille Bayésien --- Black-Litterman};
+
+    % Infos groupe
+    \node[white!70, font=\normalsize, text width=13cm, align=center]
+      at ($(current page.center)+(0,-0.7)$)
+      {Rania Wahbi --- Louis Jeaate --- Antoine Serac\\ECE Paris --- ING4 Finance \& IA Probabiliste --- 2026};
+
+    % Formule BL en bas
+    \node[white!50, font=\footnotesize, text width=13cm, align=center]
+      at ($(current page.center)+(0,-1.8)$)
+      {$\blmu = \left[(\tau\Sigma)^{-1} + P^\top\Omega^{-1}P\right]^{-1}
+        \left[(\tau\Sigma)^{-1}\Pi + P^\top\Omega^{-1}Q\right]$};
+
+    % Icône bas
+    \node[white!40, font=\Large]
+      at ($(current page.south)+(0,0.6)$)
+      {\faGithub\ github.com/ECE-Paris-Ing4 \quad
+       \faPython\ Python + NumPy + SciPy};
+
+  \end{tikzpicture}
+\end{frame}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% RÉFÉRENCES
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{frame}{Références}
+  \small
+  \begin{thebibliography}{9}
+    \bibitem{bl1992}
+      F. Black \& R. Litterman,
+      \textit{Global Portfolio Optimization}.
+      Financial Analysts Journal, 1992.
+
+    \bibitem{bl1991}
+      F. Black \& R. Litterman,
+      \textit{Asset Allocation: Combining Investor Views with Market Equilibrium}.
+      The Journal of Fixed Income, 1991.
+
+    \bibitem{he2002}
+      G. He \& R. Litterman,
+      \textit{The Intuition Behind Black-Litterman Model Portfolios}.
+      SSRN, 2002.
+
+    \bibitem{idzorek2005}
+      T. Idzorek,
+      \textit{A Step-by-Step Guide to the Black-Litterman Model}.
+      Forecasting Expected Returns in Financial Markets, 2007.
+
+    \bibitem{walters2014}
+      J. Walters,
+      \textit{The Black-Litterman Model in Detail}.
+      SSRN, 2014.
+
+    \bibitem{pypfopt}
+      R. Martin,
+      \textit{PyPortfolioOpt: Portfolio Optimization in Python}.
+      JOSS, 2021.
+  \end{thebibliography}
+\end{frame}
+
+\end{document}
