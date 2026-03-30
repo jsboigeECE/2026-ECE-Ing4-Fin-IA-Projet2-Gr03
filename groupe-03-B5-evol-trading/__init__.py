@@ -1,0 +1,1 @@
+"""Package for evolutionary dynamics simulation of trading strategies."""
